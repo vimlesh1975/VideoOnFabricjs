@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 
 import { FabricJSCanvas, useFabricJSEditor } from 'fabricjs-react';
 
@@ -50,9 +50,8 @@ const App = () => {
     });
   };
 
-  const video1El = useRef(null);
-  const addVideo = () => {
-    var video1 = new fabric.Image(video1El.current, {
+  const addVideo = (videoElement) => {
+    var video1 = new fabric.Image(videoElement, {
       left: 500,
       top: 300,
       angle: -15,
@@ -74,31 +73,39 @@ const App = () => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [videoUrl, setVideoUrl] = useState(null);
 
-  const handleFileChange = (event) => {
+  const handleFileChange = async (event) => {
     // Get the selected file from the input
     const file = event.target.files[0];
 
     // Update the state with the selected file
     setSelectedFile(file);
+    await handleUpload(file);
   };
 
-  const handleUpload = async () => {
+  const handleUpload = async (selectedFile) => {
     if (selectedFile) {
-      const data = new FormData();
-      data.set('file', selectedFile);
+      const blob = new Blob([selectedFile], { type: selectedFile.type });
+      // setVideoUrl(URL.createObjectURL(blob));
 
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        body: data,
-      });
+      // Create a video element
+      const videoElement = document.createElement('video');
 
-      // Assuming the server responds with the file URL
-      // const { fileUrl } = await res.json();
-      // console.log(fileUrl);
+      // Set attributes for the video element
+      videoElement.style.display = 'none';
+      videoElement.width = 1920;
+      videoElement.height = 1080;
+      videoElement.controls = true;
+      videoElement.src = URL.createObjectURL(blob);
+      videoElement.type = 'video/mp4';
+      videoElement.autoplay = true;
+      videoElement.loop = true;
 
-      // Update the video URL in the component state
-      setVideoUrl(`./${selectedFile.name}`);
-      addVideo();
+      // Add a fallback message for browsers that do not support the video tag
+      videoElement.innerHTML = 'Your browser does not support the video tag.';
+
+      // Append the video element to the body or another container element
+      document.body.appendChild(videoElement);
+      addVideo(videoElement);
     }
   };
 
@@ -106,32 +113,20 @@ const App = () => {
     <div>
       <div>
         <input type="file" onChange={handleFileChange} />
-        <button onClick={handleUpload}>Upload</button>
       </div>
 
       <button onClick={onAddCircle}>Add circle</button>
       <button onClick={onAddRectangle}>Add Rectangle</button>
-      <button onClick={addVideo}>Add Video</button>
-      <h3>Uploaded Video</h3>
-      <video
-        style={{ display: 'none' }}
-        ref={video1El}
-        controls
-        width={1920}
-        height={1080}
-        src={videoUrl}
-        type="video/mp4"
-        autoPlay
-        loop
-      >
-        Your browser does not support the video tag.
-      </video>
+      <button onClick={() => console.log(editor.canvas.getActiveObject())}>
+        console log
+      </button>
 
       <FabricJSCanvas
         onReady={(canvas) => {
           onReady(canvas);
           canvas.setWidth(1920);
           canvas.setHeight(1080);
+          window.canvas = canvas;
         }}
       />
     </div>
